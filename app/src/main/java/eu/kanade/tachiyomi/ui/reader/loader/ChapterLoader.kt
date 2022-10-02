@@ -92,6 +92,7 @@ class ChapterLoader(
                         error(context.getString(R.string.loader_rar5_error))
                     }
                     is LocalSource.Format.Epub -> EpubPageLoader(format.file)
+                    is LocalSource.Format.Pdf -> CachedPdfPageLoader(format.file, chapter)
                 }
             }
             source is SourceManager.StubSource -> throw source.getSourceNotInstalledException()

@@ -13,9 +13,11 @@ import kotlinx.serialization.json.Json
 import okhttp3.Response
 import okio.buffer
 import okio.sink
+import okio.source
 import uy.kohesive.injekt.injectLazy
 import java.io.File
 import java.io.IOException
+import java.io.InputStream
 
 /**
  * Class used to create chapter cache
@@ -170,6 +172,34 @@ class ChapterCache(private val context: Context) {
             editor.commit()
         } finally {
             response.body.close()
+            editor?.abortUnlessCommitted()
+        }
+    }
+
+    /**
+     * Add image to cache.
+     *
+     * @param imageUrl url of image.
+     * @param stream input stream from page.
+     * @throws IOException image error.
+     */
+    @Throws(IOException::class)
+    fun putImageToCache(imageUrl: String, stream: InputStream) {
+        // Initialize editor (edits the values for an entry).
+        var editor: DiskLruCache.Editor? = null
+
+        try {
+            // Get editor from md5 key.
+            val key = DiskUtil.hashKeyForDisk(imageUrl)
+            editor = diskCache.edit(key) ?: throw IOException("Unable to edit key")
+
+            // Get OutputStream and write image with Okio.
+            stream.source().buffer().saveTo(editor.newOutputStream(0))
+
+            diskCache.flush()
+            editor.commit()
+        } finally {
+            stream.close()
             editor?.abortUnlessCommitted()
         }
     }

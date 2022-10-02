@@ -15,6 +15,7 @@ import eu.kanade.tachiyomi.util.lang.compareToCaseInsensitiveNaturalOrder
 import eu.kanade.tachiyomi.util.lang.withIOContext
 import eu.kanade.tachiyomi.util.storage.DiskUtil
 import eu.kanade.tachiyomi.util.storage.EpubFile
+import eu.kanade.tachiyomi.util.storage.PdfFile
 import eu.kanade.tachiyomi.util.system.ImageUtil
 import eu.kanade.tachiyomi.util.system.logcat
 import kotlinx.coroutines.runBlocking
@@ -351,6 +352,7 @@ class LocalSource(
             extension.equals("zip", true) || extension.equals("cbz", true) -> Format.Zip(this)
             extension.equals("rar", true) || extension.equals("cbr", true) -> Format.Rar(this)
             extension.equals("epub", true) -> Format.Epub(this)
+            extension.equals("pdf", true) -> Format.Pdf(this)
             else -> throw Exception(context.getString(R.string.local_invalid_format))
         }
     }
@@ -392,6 +394,14 @@ class LocalSource(
                         entry?.let { updateCover(context, manga, epub.getInputStream(it)) }
                     }
                 }
+                is Format.Pdf -> {
+                    PdfFile(format.file).use { pdf ->
+                        val entry = pdf.getImagesFromPages()
+                            .firstOrNull()
+
+                        entry?.let { updateCover(context, manga, pdf.getInputStream(it)) }
+                    }
+                }
             }
         } catch (e: Throwable) {
             logcat(LogPriority.ERROR, e) { "Error updating cover for ${manga.title}" }
@@ -404,6 +414,7 @@ class LocalSource(
         data class Zip(val file: File) : Format()
         data class Rar(val file: File) : Format()
         data class Epub(val file: File) : Format()
+        data class Pdf(val file: File) : Format()
     }
 
     companion object {
@@ -481,5 +492,5 @@ class LocalSource(
     }
 }
 
-private val SUPPORTED_ARCHIVE_TYPES = listOf("zip", "cbz", "rar", "cbr", "epub")
+private val SUPPORTED_ARCHIVE_TYPES = listOf("zip", "cbz", "rar", "cbr", "epub", "pdf")
 private val COMIC_INFO_FILE = "ComicInfo.xml"
